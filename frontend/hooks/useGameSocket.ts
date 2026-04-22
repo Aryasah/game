@@ -9,7 +9,7 @@ import {
   Rank
 } from '../types/game';
 
-const SOCKET_URL = 'ws://localhost:8081/ws/game';
+const SOCKET_URL = 'https://game-8x24.onrender.com/ws/game';
 const SESSION_KEY = 'bluff_session_id';
 const ROOM_KEY = 'bluff_room_id';
 
