@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 
 export function LobbyScreen() {
-  const { gameState, joinLobby, startGame, isConnected } = useGame();
+  const { gameState, joinLobby, startGame, isConnected, leaveRoom } = useGame();
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -76,7 +76,7 @@ export function LobbyScreen() {
             ))}
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-4">
             {canStart ? (
                <button
                  onClick={() => startGame()}
@@ -90,6 +90,12 @@ export function LobbyScreen() {
                 Need at least 3 nodes to initialize
               </p>
             )}
+            <button
+              onClick={leaveRoom}
+              className="w-full py-3 rounded-lg font-mono font-bold text-[#ff525c] uppercase tracking-[0.2em] transition-all duration-300 transform hover:bg-[#ff525c]/10 border border-[#ff525c]/20 text-xs"
+            >
+              Abort Connection (Leave Room)
+            </button>
           </div>
         </div>
       </div>

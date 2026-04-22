@@ -252,7 +252,7 @@ class GameService {
         // If everyone disconnected, end game? Handled elsewhere ideally.
     }
 
-    fun handleDisconnect(roomId: String, playerSessionId: String) {
+    fun markPlayerDisconnected(roomId: String, playerSessionId: String) {
         val currentGame = games[roomId] ?: return
         val player = currentGame.findPlayer(playerSessionId) ?: return
         
@@ -265,18 +265,44 @@ class GameService {
             log.info("Room $roomId: All players disconnected. Room destroyed.")
             return
         }
+    }
 
-        if (currentGame.currentPlayer().sessionId == playerSessionId &&
-            currentGame.phase == GamePhase.IN_PROGRESS
-        ) {
-            // It was their turn, so we auto-pass for them (if pile isn't empty) or just advance if empty
+    /** Returns true if an auto-pass was actually performed and the pile was cleared. Returns Pair(didAction, wasCleared) */
+    fun autoPassIfDisconnected(roomId: String, playerSessionId: String): Pair<Boolean, Boolean> {
+        val currentGame = games[roomId] ?: return Pair(false, false)
+        val player = currentGame.findPlayer(playerSessionId) ?: return Pair(false, false)
+        
+        if (!player.connected && currentGame.currentPlayer().sessionId == playerSessionId && currentGame.phase == GamePhase.IN_PROGRESS) {
             if (currentGame.isPileEmpty()) {
                 advanceTurnSkippingDisconnected(currentGame)
+                log.info("Room $roomId: Auto-skipped disconnected player's turn.")
+                return Pair(true, false)
             } else {
                 // Force pass
-                passTurn(roomId, playerSessionId)
+                val (_, wasCleared) = passTurn(roomId, playerSessionId)
+                log.info("Room $roomId: Auto-passed disconnected player's turn.")
+                return Pair(true, wasCleared)
             }
-            log.info("Room $roomId: Auto-skipped disconnected player's turn.")
+        }
+        return Pair(false, false)
+    }
+
+    fun leaveRoom(roomId: String, playerSessionId: String) {
+        val currentGame = games[roomId] ?: return
+        val player = currentGame.findPlayer(playerSessionId) ?: return
+
+        if (currentGame.phase == GamePhase.WAITING_FOR_PLAYERS) {
+            currentGame.players.remove(player)
+            log.info("Room $roomId: Player left: sessionId=$playerSessionId")
+            
+            if (currentGame.players.isEmpty()) {
+                games.remove(roomId)
+                log.info("Room $roomId: All players left. Room destroyed.")
+            }
+        } else {
+            // If the game is already in progress, we treat leaving as a permanent disconnect
+            markPlayerDisconnected(roomId, playerSessionId)
+            autoPassIfDisconnected(roomId, playerSessionId)
         }
     }
 

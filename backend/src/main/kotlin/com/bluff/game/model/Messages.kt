@@ -25,7 +25,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
     JsonSubTypes.Type(value = ClientMessage.StartGame::class, name = "StartGame"),
     JsonSubTypes.Type(value = ClientMessage.PlayCards::class, name = "PlayCards"),
     JsonSubTypes.Type(value = ClientMessage.Pass::class, name = "Pass"),
-    JsonSubTypes.Type(value = ClientMessage.CallBluff::class, name = "CallBluff")
+    JsonSubTypes.Type(value = ClientMessage.CallBluff::class, name = "CallBluff"),
+    JsonSubTypes.Type(value = ClientMessage.LeaveRoom::class, name = "LeaveRoom")
 )
 sealed class ClientMessage {
 
@@ -50,6 +51,9 @@ sealed class ClientMessage {
 
     /** Player challenges the last play as a bluff. */
     data object CallBluff : ClientMessage()
+
+    /** Player explicitly leaves the room. */
+    data object LeaveRoom : ClientMessage()
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

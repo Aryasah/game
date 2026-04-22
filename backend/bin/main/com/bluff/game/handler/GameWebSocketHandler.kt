@@ -43,6 +43,7 @@ class GameWebSocketHandler(
                 is ClientMessage.PlayCards -> handlePlayCards(session, clientMessage)
                 is ClientMessage.Pass -> handlePass(session)
                 is ClientMessage.CallBluff -> handleCallBluff(session)
+                is ClientMessage.LeaveRoom -> handleLeaveRoom(session)
             }
         } catch (e: Exception) {
             log.error("Error processing message from ${session.id}: ${e.message}", e)
@@ -57,9 +58,22 @@ class GameWebSocketHandler(
             val roomId = playerSessionToRoomId[playerSessionId]
             
             if (roomId != null) {
-                gameService.handleDisconnect(roomId, playerSessionId)
+                gameService.markPlayerDisconnected(roomId, playerSessionId)
                 log.info("Player disconnected: sessionId=$playerSessionId, room=$roomId, wsId=${session.id}, status=$status")
                 broadcastGameState(roomId)
+
+                // Schedule auto-pass after 30 seconds
+                java.util.Timer().schedule(object : java.util.TimerTask() {
+                    override fun run() {
+                        val (didAction, wasCleared) = gameService.autoPassIfDisconnected(roomId, playerSessionId)
+                        if (didAction) {
+                            if (wasCleared) {
+                                broadcastToRoom(roomId, ServerMessage.PileCleared(playerSessionId, 0))
+                            }
+                            broadcastGameState(roomId)
+                        }
+                    }
+                }, 30000)
             }
         }
     }
@@ -135,6 +149,20 @@ class GameWebSocketHandler(
         }
 
         broadcastToRoom(roomId, resolution)
+        broadcastGameState(roomId)
+    }
+
+    private fun handleLeaveRoom(session: WebSocketSession) {
+        val playerSessionId = wsSessionToPlayerSession[session.id] ?: return
+        val roomId = playerSessionToRoomId[playerSessionId] ?: return
+
+        gameService.leaveRoom(roomId, playerSessionId)
+
+        // Clean up session mappings
+        wsSessionToPlayerSession.remove(session.id)
+        playerSessionToRoomId.remove(playerSessionId)
+        playerSessionToWsSession.remove(playerSessionId)
+
         broadcastGameState(roomId)
     }
 

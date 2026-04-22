@@ -12,6 +12,7 @@ import {
 const SOCKET_URL = 'https://game-8x24.onrender.com/ws/game';
 const SESSION_KEY = 'bluff_session_id';
 const ROOM_KEY = 'bluff_room_id';
+const PLAYER_NAME_KEY = 'bluff_player_name';
 
 export function useGameSocket() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -35,12 +36,16 @@ export function useGameSocket() {
     onOpen: () => {
       console.log('WebSocket connected');
       // Auto-rejoin if we have a session AND room
-      if (sessionId && roomId) {
+      const currentSession = sessionStorage.getItem(SESSION_KEY);
+      const currentRoom = sessionStorage.getItem(ROOM_KEY);
+      const currentName = sessionStorage.getItem(PLAYER_NAME_KEY) || 'Reconnecting...';
+      
+      if (currentSession && currentRoom) {
         sendJsonMessage({
           type: 'JoinLobby',
-          playerName: 'Reconnecting...',
-          sessionId: sessionId,
-          roomId: roomId
+          playerName: currentName,
+          sessionId: currentSession,
+          roomId: currentRoom
         } as ClientMessage);
       }
     },
@@ -123,6 +128,7 @@ export function useGameSocket() {
       setSessionId(newSessionId);
       sessionStorage.setItem(SESSION_KEY, newSessionId);
     }
+    sessionStorage.setItem(PLAYER_NAME_KEY, playerName);
     
     sendJsonMessage({
       type: 'JoinLobby',
@@ -156,6 +162,22 @@ export function useGameSocket() {
     setBluffResult(null);
   }, []);
 
+  const leaveRoom = useCallback(() => {
+    sendJsonMessage({ type: 'LeaveRoom' } as ClientMessage);
+    
+    // Clear session storage
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(ROOM_KEY);
+    sessionStorage.removeItem(PLAYER_NAME_KEY);
+    
+    // Reset state
+    setSessionId(null);
+    setRoomId(null);
+    setGameState(null);
+    setActionLog([]);
+    setBluffResult(null);
+  }, [sendJsonMessage]);
+
   return {
     gameState,
     actionLog,
@@ -168,6 +190,7 @@ export function useGameSocket() {
     playCards,
     passTurn,
     callBluff,
-    clearBluffResult
+    clearBluffResult,
+    leaveRoom
   };
 }

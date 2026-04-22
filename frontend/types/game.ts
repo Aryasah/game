@@ -78,7 +78,8 @@ export type ClientMessage =
   | { type: 'StartGame' }
   | { type: 'PlayCards'; cardIds: string[]; claimedRank: Rank }
   | { type: 'Pass' }
-  | { type: 'CallBluff' };
+  | { type: 'CallBluff' }
+  | { type: 'LeaveRoom' };
 
 export const RANK_DISPLAY: Record<Rank, string> = {
   ACE: 'A', TWO: '2', THREE: '3', FOUR: '4', FIVE: '5', SIX: '6', SEVEN: '7',
